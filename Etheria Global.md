@@ -13,7 +13,7 @@
 - codigoPostal varchar(20)
 - esHubLogistico boolean default false
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
@@ -22,7 +22,7 @@
 - nombre varchar(50)
 - paisId (FK)
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoriaint // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
@@ -37,34 +37,47 @@
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
+# ImpuestosPorPais 
+- impuestoId serial auto-increment (PK)
+- productoId int //FK -> Productos
+- paisDestinoId int //FK -> Paises
+- tipoImpuesto varchar(30) 
+- porcentaje decimal(5,2) // Ej: 12.50 para 12.5%
+- montoFijoUsd decimal(10,2) // Para aranceles específicos
+- vigenciaDesde date
+- vigenciaHasta date
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- activo boolean default true
+
 # Puertos 
 - puertoId serial auto-increment (PK)
 - nombre varchar(50)
-- ciudadId FK
+- ciudadId FK -> Ciudades
 - codigoIso varchar(10) 
 - capacidadMaximaToneladas decimal(12,2)
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
 # Aeropuertos
 - aeropuertoId serial auto-increment (PK)
 - nombre varchar(50)
-- ciudadId FK
+- ciudadId FK -> Ciudades
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
 # Courier
 - courierId serial auto-increment (PK)
 - nombre varchar(50)
-- ciudadId FK
+- ciudadId FK -> Ciudades
 - tipoServicioId //Crearlo
 - tiempoEntregaPromedioDias int
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
@@ -74,7 +87,13 @@
 - creadoEn TIMESTAMP
 - usuarioAuditoria (FK)
 - ultimaAuditoria TIMESTAMP
-- borrado boolean
+- activo boolean
+
+
+
+
+
+
 
 # Currencies
 - currencyId serial auto-increment (PK)
@@ -83,9 +102,9 @@
 - nombre varchar(50)
 - activo boolean
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
-- paisId
+- paisId // FK a Paises
 
 # TasasDeCambio
 - tasaDeCambioId serial auto-increment (PK)
@@ -93,7 +112,7 @@
 - currencyId2 (FK)
 - exchangeRate //Factor multiplicativo
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
@@ -105,10 +124,32 @@
 - currencyId2 (FK)
 - exchangeRate //Factor multiplicativo
 - creadoEn TIMESTAMP
-- usuarioAuditoria (FK)
+- usuarioAuditoria int // FK a Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 - tasaDeCambioId
+
+
+
+
+
+# Productos
+- productoId serial auto-increment (PK)
+- skuInterno varchar(20) unique not null // Código único del Holding
+- nombreTecnico varchar(50) not null // Nombre científico
+- nombreComun varchar(50) // Nombre comercial genérico
+- tipoProductoId int //FK -> TiposProducto
+- unidadMedidaProductoId //FK -> UnidadesMedidaProducto
+- requierePermisoSanitario boolean default true
+- aptoParaIngesta boolean default false
+- aptoParaPiel boolean default false
+- temperaturaMinAlmacenamiento decimal(4,1) // °C
+- temperaturaMaxAlmacenamiento decimal(4,1) // °C
+- vidaUtilMeses int
+- creadoEn TIMESTAMP 
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
 
 # TiposProducto
 - tipoProductoId serial auto-increment (PK)
@@ -118,6 +159,63 @@
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
+
+# UnidadesMedidaProducto
+- UnidadMedidaProductoId serial auto-increment (PK)
+- nombre varchar(50) not null 
+- descripcion varchar(100)
+- creadoEn TIMESTAMP 
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# PropiedadesMedicinales
+- propiedadMedicinalId serial auto-increment (PK)
+- productoId int //FK -> ProductoBase
+- descripcion varchar(250) not null 
+- contraindicaciones varchar(250)
+- dosisRecomendada varchar(50)
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# PreciosBaseProducto // Precio de referencia en USD 
+- precioBaseId serial auto-increment (PK)
+- productoId int //FK -> Productos
+- precioReferenciaUsd decimal(10,2) not null
+- margenMinimoRecomendado decimal(5,2) // Ej: 30.00 para 30%
+- fechaVigenciaDesde date
+- fechaVigenciaHasta date
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- activo boolean default true
+
+# MarcasOriginales 
+- marcaOriginalId serial auto-increment (PK)
+- nombreMarca varchar(50) not null 
+- paisOrigenId int //FK -> Paises
+- contactoComercialId int //FK -> InfoContactoProveedores
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# ProductosPorMarca 
+- productoPorMarcaId serial auto-increment (PK)
+- productoId int //FK -> Producto
+- marcaOriginalId int //FK -> MarcasOriginales
+- proveedorId int //FK -> Proveedores
+- fechaInicioVigencia date 
+- fechaFinVigencia date 
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+
+
+
 
 # Orden
 - ordenCompraId serial auto-increment (PK)
@@ -136,45 +234,6 @@
 # EstadosOrdenes
 - estadoOrdenId serial auto-increment (PK)
 - nombre varchar(50) not null 
-- creadoEn TIMESTAMP 
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
-
-# Productos
-- productoId serial auto-increment (PK)
-- skuInterno varchar(20) unique not null // Código único del Holding
-- nombreTecnico varchar(50) not null // Nombre científico
-- nombreComun varchar(100) // Nombre comercial genérico
-- tipoProductoId int //FK -> TiposProducto
-- unidadMedidaProductoId //FK -> UnidadesMedidaProducto
-- requierePermisoSanitario boolean default true
-- aptoParaIngesta boolean default false
-- aptoParaPiel boolean default false
-- temperaturaMinAlmacenamiento decimal(4,1) // °C
-- temperaturaMaxAlmacenamiento decimal(4,1) // °C
-- vidaUtilMeses int
-- creadoEn TIMESTAMP 
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
-
-# PropiedadesMedicinales
-- propiedadMedicinalId serial auto-increment (PK)
-- productoId int //FK -> ProductoBase
-- descripcion varchar(250) not null 
-- contraindicaciones varchar(250)
-- dosisRecomendada varchar(50)
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
-
-# UnidadesMedidaProducto
-- UnidadMedidaProductoId serial auto-increment (PK)
-- nombre varchar(50) not null 
-- descripcion text
-- requiereControlTemperatura boolean default false
 - creadoEn TIMESTAMP 
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -205,18 +264,32 @@
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
-# PreciosBaseProducto // Precio de referencia en USD 
-- precioBaseId serial auto-increment (PK)
-- productoBaseId int //FK -> Productos
-- precioReferenciaUsd decimal(10,2) not null
-- margenMinimoRecomendado decimal(5,2) // Ej: 30.00 para 30%
-- fechaVigenciaDesde date
-- fechaVigenciaHasta date
-- creadoEn TIMESTAMP
+# TipoContacto
+- tipoContactoId
+- nombre varchar(50) not null 
+- creadoEn TIMESTAMP 
 - usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
-# MovimientoInventario // Trazabilidad de stock
+# LoteBulk 
+- loteBulkId serial auto-increment (PK)
+- productoId int //FK -> Productos
+- proveedorId int //FK -> Proveedores
+- ordenCompraId int //FK -> Ordenes
+- numeroLoteProveedor varchar(100) // Lote asignado por proveedor extranjero
+- fechaRecepcionHub timestamp not null
+- fechaVencimiento date not null
+- cantidadTotal decimal(12,2) not null
+- costoTotalUsd decimal(12,2) not null 
+- estado varchar(20) 
+- puertoLlegadaId int //FK -> Puertos
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# MovimientoInventario 
 - movimientoId serial auto-increment (PK)
 - loteBulkId int FK -> LoteBulk.loteBulkId
 - tipoMovimiento varchar(30) not null 
@@ -228,12 +301,11 @@
 - responsableId int //FK -> Usuarios
 - fechaMovimiento TIMESTAMP
 - observaciones varchar(200)
-- transformacionIdReferencia int //FK -> TransformacionProducto
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - activo boolean default true
 
-# ProductosPorOrden // 
+# ProductosPorOrden  
 - productoPorOrdenId serial auto-increment (PK)
 - ordenId int FK -> Orden
 - productoId int //FK -> Productos
@@ -242,9 +314,40 @@
 - subtotalUsd decimal(12,2) not null // Calculado: cantidadSolicitada * precioUnitarioAcordadoUsd
 - estadoItem varchar(20) 
 - creadoEn timestamp default current_timestamp
-- usuarioAuditoria int (FK -> Usuarios.usuarioId)
+- usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
+
+# TrazabilidadOrdenes 
+- trazabilidadId serial auto-increment (PK)
+- ordenCompraId int //FK -> Ordenes not null
+- productoPorOrdenId int //FK -> ProductosPorOrden 
+- etapaActual varchar(30) not null 
+- fechaCambioEtapa timestamp not null
+- ubicacionActual varchar(100) 
+- transportistaNombre varchar(100) 
+- numeroGuiaInternacional varchar(100) // Tracking number del transportista principal
+- fechaEstimadaLlegada date
+- fechaRealLlegada date
+- incidencias varchar(200)
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# HistorialEtapasOrden // Registro histórico de cada cambio de etapa (para auditoría y métricas)
+- historialEtapaId serial auto-increment (PK)
+- trazabilidadId int //FK -> TrazabilidadOrdenes not null
+- etapaAnterior varchar(30)
+- etapaNueva varchar(30) not null
+- fechaCambio TIMESTAMP
+- responsableCambio varchar(100) 
+- comentarioCambio varchar(200)
+- creadoEn TIMESTAMP
+
+
+
+
 
 # TiposEvento 
 - tipoEventoId serial auto-increment (PK)
@@ -293,88 +396,10 @@
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
-# MarcasOriginales 
-- marcaOriginalId serial auto-increment (PK)
-- nombreMarca varchar(50) not null 
-- paisOrigenId int //FK -> Paises
-- esProveedorExclusivo boolean default false
-- contactoComercialId int //FK -> InfoContactoProveedores
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
 
 
-# ProductosPorMarca 
-- productoPorMarcaId serial auto-increment (PK)
-- productoBaseId int //FK -> Producto
-- marcaOriginalId int //FK -> MarcasOriginales
-- proveedorId int //FK -> Proveedores
-- fechaInicioVigencia date 
-- fechaFinVigencia date 
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
 
 
-# TrazabilidadOrdenes 
-- trazabilidadId serial auto-increment (PK)
-- ordenCompraId int //FK -> Ordenes not null
-- productoPorOrdenId int //FK -> ProductosPorOrden 
-- etapaActual varchar(30) not null 
-- fechaCambioEtapa timestamp not null
-- ubicacionActual varchar(100) 
-- transportistaNombre varchar(100) 
-- numeroGuiaInternacional varchar(100) // Tracking number del transportista principal
-- fechaEstimadaLlegada date
-- fechaRealLlegada date
-- incidencias varchar(200)
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
-
-
-# HistorialEtapasOrden // Registro histórico de cada cambio de etapa (para auditoría y métricas)
-- historialEtapaId serial auto-increment (PK)
-- trazabilidadId int //FK -> TrazabilidadOrdenes not null
-- etapaAnterior varchar(30)
-- etapaNueva varchar(30) not null
-- fechaCambio TIMESTAMP
-- responsableCambio varchar(100) 
-- comentarioCambio varchar(200)
-- creadoEn TIMESTAMP
-
-# LoteBulk 
-- loteBulkId serial auto-increment (PK)
-- productoId int //FK -> Productos
-- proveedorId int //FK -> Proveedores
-- ordenCompraId int //FK -> Ordenes
-- numeroLoteProveedor varchar(100) // Lote asignado por proveedor extranjero
-- fechaRecepcionHub timestamp not null
-- fechaVencimiento date not null
-- cantidadTotal decimal(12,2) not null
-- costoTotalUsd decimal(12,2) not null 
-- estado varchar(20) 
-- puertoLlegadaId int //FK -> Puertos
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- ultimaAuditoria TIMESTAMP
-- activo boolean default true
-
-# ImpuestosPorPais 
-- impuestoId serial auto-increment (PK)
-- productoBaseId int //FK -> Productoas
-- paisDestinoId int //FK -> Paises.paisId
-- tipoImpuesto varchar(30) 
-- porcentaje decimal(5,2) // Ej: 12.50 para 12.5%
-- montoFijoUsd decimal(10,2) // Para aranceles específicos
-- vigenciaDesde date
-- vigenciaHasta date
-- creadoEn TIMESTAMP
-- usuarioAuditoria int //FK -> Usuarios
-- activo boolean default true
 
 # Usuarios
 - usuarioId serial auto-increment (PK)

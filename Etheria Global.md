@@ -1,7 +1,7 @@
 > **Nombre:** Etheria Global db
 > **Motor de base de datos:** Postgres 
-> **Versión:** 0.2  
-> **Fecha:** 26-03-2026 
+> **Versión:** 0.6
+> **Fecha:** 3-04-2026 
 > **Autor:** Gerald Hernández Gamboa  
 
 ## Tables 
@@ -40,7 +40,7 @@
 - impuestoId serial auto-increment (PK)
 - productoId int //FK -> Productos
 - paisDestinoId int //FK -> Paises
-- tipoImpuestoId // FK -> TiposImpuestos
+- tipoImpuestoId //FK -> TiposImpuestos
 - porcentaje decimal(5,2) // Ej: 12.50 para 12.5%
 - montoFijoUsd decimal(10,2)
 - vigenciaDesde date
@@ -121,7 +121,7 @@
 - ultimaAuditoria TIMESTAMP
 
 
-# MonedasPorPais // Solo si necesitas reporting por país/moneda
+# MonedasPorPais 
 - monedaPaisId serial auto-increment (PK)
 - currencyId int not null //FK -> Currencies 
 - paisId int not null FK -> Paises
@@ -156,8 +156,8 @@
 - configuracionTasaId serial auto-increment (PK)
 - currencyId1 int not null //FK -> Currencies 
 - currencyId2 int not null //FK -> Currencies 
-- fuentePrincipalId int //FK -> Sources.sourceId
-- fuenteSecundariaId int //FK -> Sources.sourceId 
+- fuentePrincipalId int //FK -> Sources
+- fuenteSecundariaId int //FK -> Sources
 - frecuenciaActualizacionHoras int default 24 
 - variacionMaximaDiariaPorcentaje decimal(5,2) default 5.00 
 - requiereValidacionManual boolean default false 
@@ -177,7 +177,7 @@
 - skuInterno varchar(20) unique not null //Código único del Holding
 - nombreTecnico varchar(50) not null //Nombre científico
 - nombreComun varchar(50) 
-- marcaOriginalId int //FK -> MarcasOriginales not null 
+- marcaOriginalId int not null  //FK -> MarcasOriginales
 - tipoProductoId int //FK -> TiposProducto
 - unidadMedidaProductoId //FK -> UnidadesMedidaProducto
 - requierePermisoSanitario boolean default true
@@ -247,7 +247,6 @@
 - marcaOriginalId serial auto-increment (PK)
 - nombreMarca varchar(100) not null 
 - paisOrigenId int //FK -> Paises
-- certificacionesInternacionales text
 - esProveedorExclusivo boolean default false
 - contactoComercialId int //FK -> InfoContactoProveedores
 - creadoEn TIMESTAMP
@@ -523,7 +522,7 @@
 - nombre varchar(50)
 - apellido1 varchar(40)
 - apellido2 varchar(40)
-- email varchar(255)
+- email varchar(100)
 - contraseña VARBINARY(255)
 - fechaNacimiento Date
 - creadoEn TIMESTAMP

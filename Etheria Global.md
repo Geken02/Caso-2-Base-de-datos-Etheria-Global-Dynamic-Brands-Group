@@ -1,7 +1,7 @@
 > **Nombre:** Etheria Global db
 > **Motor de base de datos:** Postgres 
-> **Versión:** 0.6
-> **Fecha:** 3-04-2026 
+> **Versión:** 0.7
+> **Fecha:** 4-04-2026 
 > **Autor:** Gerald Hernández Gamboa  
 
 ## Tables 
@@ -436,6 +436,21 @@
 - responsableCambioId //FK -> Usuarios 
 - comentarioCambio varchar(200)
 - creadoEn TIMESTAMP
+
+# CostosOperativos 
+- costoId serial auto-increment (PK)
+- loteBulkId int not null // FK -> LoteBulk
+- concepto varchar(30) not null 
+- montoUsd decimal(10,2) not null 
+- currencyId not null //FK -> Currencies
+- fechaPago date nullable 
+- paisAfectado int //FK -> Paises
+- documentoSoporte varchar(200) nullable 
+- tipoTransporteAsociadoId int nullable // FK -> TiposTransporte
+- creadoEn TIMESTAMP
+- usuarioAuditoria int // FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
 
 
 

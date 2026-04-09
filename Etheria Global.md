@@ -36,6 +36,29 @@
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
+# Ubicaciones 
+- ubicacionId serial auto-increment (PK)
+- codigo varchar(20) unique not null
+- nombre varchar(100) not null /
+- tipoUbicacionId int not null // FK -> TiposUbicacion
+- ciudadId int nullable // FK -> Ciudades
+- direccion varchar(200) nullable
+- esActiva boolean default true
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# TiposUbicacion
+- tipoUbicacionId serial auto-increment (PK)
+- nombre varchar(50) not null 
+- descripcion varchar(150)
+- requiereInspeccionEntrada boolean default false
+- requiereInspeccionSalida boolean default false
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- activo boolean default true
+
 # ImpuestosPorPais 
 - impuestoId serial auto-increment (PK)
 - productoId int //FK -> Productos
@@ -60,8 +83,8 @@
 # Puertos 
 - puertoId serial auto-increment (PK)
 - nombre varchar(50)
-- ciudadId int //FK -> Ciudades
-- codigoIso varchar(10) 
+- ubicacionId int not null unique // FK -> Ubicaciones
+- codigoUNLOCODE varchar(10)
 - capacidadMaximaToneladas decimal(12,2)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -71,7 +94,8 @@
 # Aeropuertos
 - aeropuertoId serial auto-increment (PK)
 - nombre varchar(50)
-- ciudadId int //FK -> Ciudades
+- ubicacionId int not null unique // FK -> Ubicaciones
+- codigoIATA char(3)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -269,8 +293,7 @@
 - estadoOrdenId int //FK ->EstadosOrdenes
 - tipoTransporteId int not null  //FK -> TiposTransporte 
 - incoterm varchar(10) default 'FOB'
-- puertoDestinoId int nullable  //FK -> Puertos 
-- aeropuertoDestinoId int  nullable  //FK -> Aeropuertos
+- puntoEntradaId int nullable // FK -> Ubicaciones
 - comentarios varchar(200)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -342,12 +365,24 @@
 - proveedorId int //FK -> Proveedores
 - ordenCompraId int //FK -> Ordenes
 - numeroLoteProveedor varchar(100) 
+- puntoLlegadaId int nullable // FK -> Ubicaciones
 - fechaRecepcionHub timestamp not null
 - fechaVencimiento date not null
 - cantidadTotal decimal(12,2) not null
 - costoTotalUsd decimal(12,2) not null 
 - estadoOrdenesId //FK -> EstadosOrdenes
 - tipoTransporteUtilizadoId int //FK -> TiposTransportes
+- creadoEn TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean default true
+
+# EstadosInventario
+- estadoInventarioId serial auto-increment (PK)
+- nombre varchar(50) not null 
+- permiteVenta boolean 
+- requiereInspeccion boolean 
+- descripcion varchar(150)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -374,8 +409,8 @@
 - cantidadAnterior decimal(12,2)
 - cantidadNueva decimal(12,2)
 - cantidadMovida decimal(12,2)
-- ubicacionOrigen varchar(100) 
-- ubicacionDestino varchar(100)
+- ubicacionOrigenId int nullable // FK -> Ubicaciones
+- ubicacionDestinoId int not null // FK -> Ubicaciones
 - responsableId int //FK -> Usuarios
 - fechaMovimiento TIMESTAMP
 - observaciones varchar(200)

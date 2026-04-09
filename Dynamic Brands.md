@@ -174,7 +174,7 @@
 - monedaLocalId int //FK -> Currencies
 - estadoId int //FK -> EstadosTienda
 - fechaApertura date
-- fechaCierre date
+- fechaCierre date nullable
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP

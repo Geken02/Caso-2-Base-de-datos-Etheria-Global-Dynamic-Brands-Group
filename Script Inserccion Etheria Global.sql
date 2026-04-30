@@ -1,303 +1,284 @@
 -- ============================================================================
--- ETHERIA GLOBAL - SCRIPT MAESTRO DE CARGA DE DATOS (SEED)
+-- ETHERIA GLOBAL - CARGA DE DATOS 100% TRANSACCIONAL CON ARRAYS
 -- Autor: Gerald Hernández Gamboa
--- Versión: 1.0 (CamelCase Pure)
--- Descripción: Orquesta la carga completa mediante SPs transaccionales.
---              Nombres de tablas y columnas en CamelCase estricto.
+-- Requisito: Todos los datos de negocio (Países, Productos, Órdenes) 
+--            deben ingresarse vía SPs con parámetros Array/JSON.
 -- ============================================================================
-
--- ============================================================================
--- 1. SP AUXILIAR: REGISTRAR LOGS (CamelCase)
--- ============================================================================
-CREATE OR REPLACE PROCEDURE spRegistrarLogCarga(
-    pSpNombre VARCHAR,
-    pPaso VARCHAR,
-    pEstado VARCHAR,
-    pMensaje TEXT
-)
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    vObjetoId INT;
-    vSourceId INT;
-    vTipoEventoId INT;
-    vSeveridadId INT;
-    vRefEjecucion BIGINT;
-BEGIN
-    -- Obtener IDs de catálogos
-    SELECT objetoId INTO vObjetoId FROM Objetos WHERE nombreObjeto = 'Procedimiento carga data' LIMIT 1;
-    SELECT sourceId INTO vSourceId FROM Sources WHERE nombreSource = 'Script inicial' LIMIT 1;
-    SELECT tipoEventoId INTO vTipoEventoId FROM TiposEvento WHERE codigoEvento = 'SP EXECUTION' LIMIT 1;
-    
-    IF pEstado = 'Error' THEN
-        SELECT severidadId INTO vSeveridadId FROM Severidades WHERE nombreSeveridad = 'Error' LIMIT 1;
-    ELSE
-        SELECT severidadId INTO vSeveridadId FROM Severidades WHERE nombreSeveridad = 'Informativo' LIMIT 1;
-    END IF;
-
-    vRefEjecucion := EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::BIGINT;
-
-    -- Insertar solo si los IDs existen
-    IF vObjetoId IS NOT NULL AND vSourceId IS NOT NULL AND vTipoEventoId IS NOT NULL THEN
-        INSERT INTO Logs (
-            tipoEventoId, severidadId, descripcion, sourceId, usuarioId, referenciaId1, objetoId1,
-            datosNuevos, checkSum, creadoEn, activo
-        ) VALUES (
-            vTipoEventoId, 
-            COALESCE(vSeveridadId, 2), 
-            CONCAT(pSpNombre, ' - ', pPaso), 
-            vSourceId,
-            1, 
-            vRefEjecucion,
-            vObjetoId,
-            jsonb_build_object('estado', pEstado, 'mensaje', pMensaje, 'pasoDetalle', pPaso),
-            encode(sha256(CONCAT(pSpNombre, pPaso, CURRENT_TIMESTAMP)::bytea), 'hex'),
-            CURRENT_TIMESTAMP,
-            TRUE
-        );
-    END IF;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Error al registrar log: %', SQLERRM;
-END;
-$$;
-
--- ============================================================================
--- 2. SP AUXILIAR: INICIALIZAR METADATOS DE AUDITORÍA (FASE 0)
--- ============================================================================
+-- 1. METADATOS DE AUDITORÍA
 CREATE OR REPLACE PROCEDURE spInicializarMetadatosAuditoria()
 LANGUAGE plpgsql
 AS $$
 BEGIN
-   
-    INSERT INTO Objetos (nombreObjeto, activo) VALUES ('Procedimiento carga data', TRUE) ON CONFLICT (nombreObjeto) DO NOTHING;
-
-    INSERT INTO Sources (nombreSource, activo) VALUES ('Script inicial', TRUE) ON CONFLICT (nombreSource) DO NOTHING;
-
-    INSERT INTO TiposEvento (codigoEvento, descripcion, requierePreguardado, activo) 
-    VALUES ('SP EXECUTION', 'Ejecución de Stored Procedure de Carga Masiva', FALSE, TRUE) ON CONFLICT (codigoEvento) DO NOTHING;
-    -- Asegurar Severidades
-    INSERT INTO Severidades (valorSeveridad, nombreSeveridad, activo) VALUES (2, 'Informativo', TRUE), (4, 'Error', TRUE) ON CONFLICT (nombreSeveridad) DO NOTHING;
+    INSERT INTO Objetos (nombreObjeto, activo) VALUES ('PROCEDIMIENTO_CARGA_DATA', TRUE) ON CONFLICT (nombreObjeto) DO NOTHING;
+    INSERT INTO Sources (nombreSource, activo) VALUES ('SCRIPT_SEED_INICIAL', TRUE) ON CONFLICT (nombreSource) DO NOTHING;
+    INSERT INTO TiposEvento (nombreEvento, descripcion, requierePreguardado, activo) 
+    VALUES ('SP_CARGA_MASIVA', 'Ejecución de Stored Procedures para carga masiva', FALSE, TRUE) ON CONFLICT (nombreEvento) DO NOTHING;
+    INSERT INTO Severidades (valorSeveridad, nombreSeveridad, activo) 
+    VALUES (2, 'INFORMATIVO', TRUE), (4, 'ERROR', TRUE) ON CONFLICT (nombreSeveridad) DO UPDATE SET valorSeveridad = EXCLUDED.valorSeveridad;
+    
+    INSERT INTO Usuarios (usuarioId, nombreUsuario, email, contraseña, activo, creadoEn)
+    VALUES (1, 'admin', 'admin@etheria.com', 'admin123'::bytea, TRUE, NOW()) ON CONFLICT (usuarioId) DO NOTHING;
 END;
 $$;
 
--- ============================================================================
--- 3. SP FASE 1: CARGA DE MAESTROS (Geografía, Monedas, Usuarios, Tipos)
--- ============================================================================
-CREATE OR REPLACE PROCEDURE spCargarMaestrosEtheria()
+-- 2. SP DE LOGS
+CREATE OR REPLACE PROCEDURE spRegistrarLogCarga(
+    pSpNombre VARCHAR, pPaso VARCHAR, pEstado VARCHAR, pMensaje TEXT
+)
 LANGUAGE plpgsql
 AS $$
 DECLARE
-    vUsuarioId INT;
-    vRolId INT;
-    vCurrencyId INT;
+    vObjetoId INT; vSourceId INT; vTipoEventoId INT; vSeveridadId INT; vRef BIGINT;
 BEGIN
-    -- 1. Roles y Usuarios
-    INSERT INTO Roles (nombreRol, descripcion, nivelAcceso, activo) 
-    VALUES ('Admin Sistema', 'Administrador global', 100, TRUE) RETURNING rolId INTO vRolId;
+    SELECT objetoId INTO vObjetoId FROM Objetos WHERE nombreObjeto = 'PROCEDIMIENTO_CARGA_DATA' LIMIT 1;
+    SELECT sourceId INTO vSourceId FROM Sources WHERE nombreSource = 'SCRIPT_SEED_INICIAL' LIMIT 1;
+    SELECT tipoEventoId INTO vTipoEventoId FROM TiposEvento WHERE nombreEvento = 'SP_CARGA_MASIVA' LIMIT 1;
     
-    INSERT INTO Usuarios (nombreUsuario, email, contraseña, activo) 
-    VALUES ('admin', 'admin@etheria.com', encode('admin123', 'utf8'), TRUE) RETURNING usuarioId INTO vUsuarioId;
-    
-    INSERT INTO UsuarioRol (usuarioId, rolId, asignadoPor, asignadoEn, activo) 
-    VALUES (vUsuarioId, vRolId, vUsuarioId, CURRENT_TIMESTAMP, TRUE);
+    IF pEstado = 'ERROR' THEN
+        SELECT severidadId INTO vSeveridadId FROM Severidades WHERE nombreSeveridad = 'ERROR' LIMIT 1;
+    ELSE
+        SELECT severidadId INTO vSeveridadId FROM Severidades WHERE nombreSeveridad = 'INFORMATIVO' LIMIT 1;
+    END IF;
 
-    -- 2. Monedas
-    INSERT INTO Currencies (codigoIso, nombreCurrency, currencySymbol, activo) VALUES
-    ('USD', 'Dólar Estadounidense', '$', TRUE),
-    ('EUR', 'Euro', '€', TRUE),
-    ('BRL', 'Real Brasileño', 'R$', TRUE),
-    ('CNY', 'Yuan Chino', '¥', TRUE),
+    vRef := EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)::BIGINT;
+
+    IF vObjetoId IS NOT NULL AND vSourceId IS NOT NULL AND vTipoEventoId IS NOT NULL THEN
+        INSERT INTO Logs (tipoEventoId, severidadId, descripcion, sourceId, usuarioId, referenciaId1, objetoId1, datosNuevos, checkSum, creadoEn, activo)
+        VALUES (vTipoEventoId, COALESCE(vSeveridadId, 2), CONCAT(pSpNombre, ' - ', pPaso), vSourceId, 1, vRef, vObjetoId,
+        jsonb_build_object('estado', pEstado, 'mensaje', pMensaje), encode(sha256(CONCAT(pSpNombre, pPaso, NOW())::bytea), 'hex'), NOW(), TRUE);
+    END IF;
+EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'Error log: %', SQLERRM; END;
+$$;
+
+-- 3. INICIALIZACIÓN DE CATÁLOGOS (CON TASAS COMPLETAS Y TRANSPORTES)
+CREATE OR REPLACE PROCEDURE spInicializarCatalogosPuros()
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    INSERT INTO Usuarios (usuarioId, nombreUsuario, email, contraseña, activo, creadoEn)
+    VALUES (1, 'admin', 'admin@etheria.com', 'admin123'::bytea, TRUE, NOW()) ON CONFLICT (usuarioId) DO NOTHING;
+    
+    CALL spRegistrarLogCarga('spInicializarCatalogosPuros', 'Iniciando catálogos...', 'INICIO', NULL);
+
+    -- Monedas
+    INSERT INTO Currencies (codigoIso, nombreCurrency, currencysymbol, activo) VALUES
+    ('USD', 'Dólar Estadounidense', '$', TRUE), ('EUR', 'Euro', '€', TRUE),
+    ('BRL', 'Real Brasileño', '$', TRUE), ('CNY', 'Yuan Chino', '¥', TRUE),
     ('CRC', 'Colón Costarricense', '₡', TRUE)
     ON CONFLICT (codigoIso) DO NOTHING;
-    
-    SELECT currencyId INTO vCurrencyId FROM Currencies WHERE codigoIso = 'USD';
 
-    -- 3. Tasas de Cambio (Referencia USD)
+    -- TASAS DE CAMBIO: MATRIZ COMPLETA (No solo desde USD)
+    DELETE FROM TasasDeCambio WHERE activo = TRUE; 
     INSERT INTO TasasDeCambio (currencyId1, currencyId2, exchangeRate, activo)
     SELECT c1.currencyId, c2.currencyId, 
-           CASE c2.codigoIso WHEN 'USD' THEN 1.0 WHEN 'EUR' THEN 0.92 WHEN 'BRL' THEN 5.05 WHEN 'CNY' THEN 7.20 WHEN 'CRC' THEN 520.00 ELSE 1.0 END, TRUE
-    FROM Currencies c1, Currencies c2 WHERE c1.codigoIso = 'USD' ON CONFLICT DO NOTHING;
+        CASE 
+            WHEN c1.codigoIso = c2.codigoIso THEN 1.0
+            WHEN c1.codigoIso = 'USD' THEN CASE c2.codigoIso WHEN 'EUR' THEN 0.92 WHEN 'BRL' THEN 5.05 WHEN 'CNY' THEN 7.20 WHEN 'CRC' THEN 520.00 ELSE 1.0 END
+            WHEN c2.codigoIso = 'USD' THEN CASE c1.codigoIso WHEN 'EUR' THEN 1.09 WHEN 'BRL' THEN 0.198 WHEN 'CNY' THEN 0.139 WHEN 'CRC' THEN 0.00192 ELSE 1.0 END
+            ELSE (CASE c1.codigoIso WHEN 'EUR' THEN 1.09 WHEN 'BRL' THEN 0.198 WHEN 'CNY' THEN 0.139 WHEN 'CRC' THEN 0.00192 ELSE 1.0 END) /
+                 (CASE c2.codigoIso WHEN 'EUR' THEN 1.09 WHEN 'BRL' THEN 0.198 WHEN 'CNY' THEN 0.139 WHEN 'CRC' THEN 0.00192 ELSE 1.0 END)
+        END, TRUE
+    FROM Currencies c1 CROSS JOIN Currencies c2 WHERE c1.currencyId != c2.currencyId;
 
-    -- 4. Tipos y Estados Base
-    INSERT INTO TiposProducto (nombre, activo) VALUES ('Suplemento', TRUE), ('Cosmético', TRUE), ('Aceite', TRUE) ON CONFLICT DO NOTHING;
+    -- Tipos Producto
+    INSERT INTO TiposProducto (nombreTipoProducto, activo) VALUES 
+    ('Suplemento', TRUE), ('Cosmético', TRUE), ('Aceite', TRUE), ('Electrónico', TRUE), 
+    ('Alimento', TRUE), ('Bebida', TRUE), ('Accesorio', TRUE), ('Repuesto', TRUE), 
+    ('Maquinaria', TRUE), ('Herramienta', TRUE) ON CONFLICT (nombreTipoProducto) DO NOTHING;
     
-    INSERT INTO UnidadesMedidaProducto (nombreUnidadMedidaProducto, descripcion, activo) 
-    VALUES ('Litro', 'L', TRUE), ('Kilogramo', 'KG', TRUE), ('Unidad', 'UND', TRUE) ON CONFLICT DO NOTHING;
+    -- Unidades
+    INSERT INTO UnidadesMedidaProducto (nombreUnidadMedidaProducto, descripcion, activo) VALUES 
+    ('Unidad', 'UND', TRUE), ('Litro', 'L', TRUE), ('Kilogramo', 'KG', TRUE) 
+    ON CONFLICT (nombreUnidadMedidaProducto) DO NOTHING;
     
-    INSERT INTO EstadosInventario (nombre, permiteVenta, requiereInspeccion, descripcion, activo) VALUES
-    ('Recepcionado', FALSE, TRUE, 'En cuarentena', TRUE), 
-    ('Disponible', TRUE, FALSE, 'Listo venta', TRUE), 
-    ('Reservado', FALSE, FALSE, 'Reservado', TRUE) ON CONFLICT DO NOTHING;
+    -- Estados Inventario (Corregido columnas)
+    INSERT INTO EstadosInventario (nombreEstadoInventario, descripcion, activo) VALUES 
+    ('Cuarentena', 'Pendiente', TRUE), ('Disponible', 'Listo', TRUE) 
+    ON CONFLICT (nombreEstadoInventario) DO NOTHING;
     
-    INSERT INTO EstadosOrdenes (nombreEstadoOrden, activo) VALUES ('Borrador', TRUE), ('Aprobada', TRUE), ('En Tránsito', TRUE), ('Recibida', TRUE) ON CONFLICT DO NOTHING;
+    -- Estados Ordenes
+    INSERT INTO EstadosOrdenes (nombreEstadoOrden, activo) VALUES 
+    ('Borrador', TRUE), ('Aprobada', TRUE), ('En Tránsito', TRUE), ('Recibida', TRUE) 
+    ON CONFLICT (nombreEstadoOrden) DO NOTHING;
     
-    INSERT INTO EstadosItems (nombreEstadoItem, activo) VALUES ('Pendiente', TRUE), ('Confirmado', TRUE) ON CONFLICT DO NOTHING;
+    -- Estados Items
+    INSERT INTO EstadosItems (nombreEstadoItem, activo) VALUES 
+    ('Pendiente', TRUE), ('Confirmado', TRUE) ON CONFLICT (nombreEstadoItem) DO NOTHING;
+    
+    -- Conceptos Costos
+    INSERT INTO ConceptosCostos (nombreConceptoCosto, descripcion, activo) VALUES
+    ('Flete Internacional', 'Transporte marítimo/aéreo', TRUE), ('Seguro de Carga', 'Póliza', TRUE),
+    ('Aranceles Aduana', 'Impuestos', TRUE), ('Gastos Portuarios', 'Manipulación', TRUE),
+    ('Flete Nacional', 'Local', TRUE), ('Flete Aéreo', 'Aéreo', TRUE),
+    ('Flete Marítimo', 'Marítimo', TRUE), ('Flete Terrestre', 'Terrestre', TRUE)
+    ON CONFLICT (nombreConceptoCosto) DO NOTHING;
 
-    -- 5. Tipos de Características
-    INSERT INTO TiposCaracteristica (nombreTipoCaracteristica, descripcion, activo) VALUES
-    ('Apto Ingesta', 'Consumible', TRUE), 
-    ('Apto Piel', 'Tópico', TRUE), 
-    ('Refrigera', 'Temp control', TRUE) ON CONFLICT DO NOTHING;
-    
-    CALL spRegistrarLogCarga('spCargarMaestrosEtheria', 'Maestros cargados (Usuarios, Monedas, Tipos)', 'EXITO', NULL);
+    -- TIPOS DE TRANSPORTE (FALTANTE AGREGADO)
+    INSERT INTO TiposTransporte (nombreTipoTransporte, activo) VALUES
+    ('Marítimo',  TRUE),
+    ('Aéreo',  TRUE),
+    ('Terrestre',  TRUE)
+    ON CONFLICT (nombreTipoTransporte) DO NOTHING;
+
+    CALL spRegistrarLogCarga('spInicializarCatalogosPuros', 'Catálogos listos', 'EXITO', NULL);
 END;
 $$;
 
--- ============================================================================
--- 4. SP FASE 2: CARGA DE NEGOCIO (Países, Proveedores, 100 Productos, Lotes)
--- ============================================================================
-CREATE OR REPLACE PROCEDURE spCargarNegocioEtheria()
-LANGUAGE plpgsql
-AS $$
-DECLARE
-    vPaisId INT;
-    vProdId INT;
-    vLoteId INT;
-    vProvId INT;
-    vCurrencyId INT;
-    vTipoCaractId INT;
-    vContador INT := 0;
-    vNombresPais TEXT[] := ARRAY['Costa Rica', 'Estados Unidos', 'Brasil', 'China', 'Alemania'];
-    vCodigosIso TEXT[] := ARRAY['CRC', 'USA', 'BRA', 'CHN', 'DEU'];
-    i INT;
+-- 4. CARGA DE PAÍSES
+CREATE OR REPLACE PROCEDURE spCargarPaisesLote(p_nombresPaises VARCHAR(50)[], p_codigosIso CHAR(3)[])
+LANGUAGE plpgsql AS $$
 BEGIN
-    SELECT currencyId INTO vCurrencyId FROM Currencies WHERE codigoIso = 'USD' LIMIT 1;
-    
-    -- 1. Proveedores
-    INSERT INTO Proveedores (nombreProveedor, paisOrigenId, activo) VALUES ('Global Imports SA', 1, TRUE) ON CONFLICT DO NOTHING;
-    SELECT proveedorId INTO vProvId FROM Proveedores WHERE nombreProveedor = 'Global Imports SA' LIMIT 1;
+    CALL spRegistrarLogCarga('spCargarPaisesLote', 'Procesando países...', 'INICIO', NULL);
+    INSERT INTO Paises (nombrePais, codigoIso, activo)
+    SELECT vals.nombre, vals.iso, TRUE FROM UNNEST(p_nombresPaises, p_codigosIso) AS vals(nombre, iso)
+    ON CONFLICT (codigoIso) DO UPDATE SET nombrePais = EXCLUDED.nombrePais;
+    CALL spRegistrarLogCarga('spCargarPaisesLote', 'Países cargados', 'EXITO', NULL);
+EXCEPTION WHEN OTHERS THEN CALL spRegistrarLogCarga('spCargarPaisesLote', 'Fallo', 'ERROR', SQLERRM); RAISE; END;
+$$;
 
-    -- 2. Países (5)
-    FOR i IN 1..5 LOOP
-        INSERT INTO Paises (nombrePais, codigoIso, activo) VALUES (vNombresPais[i], vCodigosIso[i], TRUE) ON CONFLICT (codigoIso) DO UPDATE SET nombrePais = EXCLUDED.nombrePais;
-    END LOOP;
-    CALL spRegistrarLogCarga('spCargarNegocioEtheria', '5 Paises creados', 'EXITO', NULL);
-        -- ... (Código previo de Países) ...
-    -- Aseguramos que Nicaragua esté en la lista de los 5 países
-    -- Si tu loop anterior ya lo incluye, perfecto. Si no, forzamos su creación aquí:
-    INSERT INTO Paises (nombrePais, codigoIso, activo) 
-    VALUES ('Nicaragua', 'NIC', TRUE) 
-    ON CONFLICT (codigoIso) DO NOTHING;
+-- 5. SP PRINCIPAL DE IMPORTACIÓN (Sin cambios mayores, lógica correcta)
+CREATE OR REPLACE PROCEDURE spEjecutarImportacionMultiOrdenJSON(p_datosJson JSONB)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_item JSONB; v_currentProveedor VARCHAR(50) := ''; v_currentPedido VARCHAR(20) := '';
+    v_proveedorId INT; v_paisId INT; v_ordenCompraId INT := 0; v_estadoOrdenId INT;
+    v_productoId INT; v_marcaId INT; v_tipoId INT; v_unidadId INT; v_loteId INT;
+    v_nombreProveedor VARCHAR(50); v_isoPaisProv CHAR(3); v_numeroPedido VARCHAR(20);
+BEGIN
+    CALL spRegistrarLogCarga('spEjecutarImportacionMultiOrdenJSON', 'Iniciando...', 'INICIO', NULL);
+    SELECT estadoOrdenId INTO v_estadoOrdenId FROM EstadosOrdenes WHERE nombreEstadoOrden = 'Aprobada' LIMIT 1;
+    IF v_estadoOrdenId IS NULL THEN RAISE EXCEPTION 'Estado "Aprobada" no encontrado.'; END IF;
 
+    FOR v_item IN SELECT * FROM jsonb_array_elements(p_datosJson) LOOP
+        v_nombreProveedor := v_item->>'nombreProveedor';
+        v_isoPaisProv := v_item->>'codigoIsoPaisProveedor';
+        v_numeroPedido := v_item->>'numeroPedido';
 
-    DECLARE vPaisNicaraguaId INT;
-    SELECT paisId INTO vPaisNicaraguaId FROM Paises WHERE codigoIso = 'NIC' LIMIT 1;
+        IF v_nombreProveedor != v_currentProveedor OR v_numeroPedido != v_currentPedido THEN
+            SELECT paisId INTO v_paisId FROM Paises WHERE codigoIso = v_isoPaisProv LIMIT 1;
+            IF v_paisId IS NULL THEN RAISE EXCEPTION 'País "%" no encontrado.', v_isoPaisProv; END IF;
 
+            INSERT INTO Proveedores (nombreProveedor, paisId, activo) VALUES (v_nombreProveedor, v_paisId, TRUE) ON CONFLICT (nombreProveedor) DO NOTHING;
+            SELECT proveedorId INTO v_proveedorId FROM Proveedores WHERE nombreProveedor = v_nombreProveedor LIMIT 1;
 
-    DECLARE vCiudadManaguaId INT;
+            SELECT ordenCompraId INTO v_ordenCompraId FROM OrdenesCompra WHERE numeroPedido = v_numeroPedido AND proveedorId = v_proveedorId LIMIT 1;
 
-    INSERT INTO Provincias (nombreProvincia, paisId, activo) 
-    VALUES ('Managua', vPaisNicaraguaId, TRUE) 
-    ON CONFLICT DO NOTHING;
-    
-    DECLARE vProvinciaManaguaId INT;
-    SELECT provinciaId INTO vProvinciaManaguaId FROM Provincias WHERE nombreProvincia = 'Managua' AND paisId = vPaisNicaraguaId LIMIT 1;
-
-    INSERT INTO Ciudades (nombreCiudad, provinciaId, activo) 
-    VALUES ('Managua', vProvinciaManaguaId, TRUE) 
-    ON CONFLICT DO NOTHING;
-    
-    SELECT ciudadId INTO vCiudadManaguaId FROM Ciudades WHERE nombreCiudad = 'Managua' AND provinciaId = vProvinciaManaguaId LIMIT 1;
-
-    -- 2. Crear el Tipo de Ubicación "Hub Logístico" si no existe
-    DECLARE vTipoHubId INT;
-    INSERT INTO TiposUbicacion (nombreTipoUbicacion, descripcion, esInterno, requiereInspeccionEntrada, requiereInspeccionSalida, activo) 
-    VALUES ('Hub Logístico Central', 'Centro de consolidación y distribución principal en Nicaragua', TRUE, TRUE, TRUE, TRUE)
-    ON CONFLICT (nombreTipoUbicacion) DO NOTHING;
-    
-    SELECT tipoUbicacionId INTO vTipoHubId FROM TiposUbicacion WHERE nombreTipoUbicacion = 'Hub Logístico Central' LIMIT 1;
-
-    -- 3. Crear la Ubicación Física del Hub en Nicaragua
-    INSERT INTO Ubicaciones (
-        nombreUbicacion, 
-        tipoUbicacionId, 
-        ciudadId, 
-        direccion, 
-        coordenadasLatitud, 
-        coordenadasLongitud, 
-        operadorLogistico, 
-        activo
-    ) VALUES (
-        'Etheria Hub Nicaragua - Managua', -- Nombre claro
-        vTipoHubId,                        -- Tipo: Hub
-        vCiudadManaguaId,                  -- Ciudad: Managua
-        'Km 12.5 Carretera Norte, Zona Franca, Managua', -- Dirección realista
-        12.1360,                           -- Latitud aprox Managua
-        -86.2510,                          -- Longitud aprox Managua
-        'Etheria Global SA',               -- Operador
-        TRUE
-    ) ON CONFLICT DO NOTHING;
-
-    
-    CALL spRegistrarLogCarga('spCargarMaestrosEtheria', 'Hub Logístico Central en Nicaragua creado exitosamente', 'EXITO', 'Ubicación: Managua, NIC');
-
-    FOR i IN 1..100 LOOP
-        vPaisId := ((i-1) % 5) + 1; 
-
-        -- Insertar Producto
-        INSERT INTO Productos (skuInterno, nombreTecnico, nombreComun, marcaOriginalId, tipoProductoId, unidadMedidaProductoId, vidaUtilMeses, activo, usuarioAuditoria)
-        VALUES ('SKU-ETH-' || LPAD(i::text, 4, '0'), 'Prod Técnico ' || i, 'Producto Común ' || i, 1, ((i%3)+1), ((i%3)+1), 24, TRUE, 1)
-        ON CONFLICT (skuInterno) DO UPDATE SET nombreComun = EXCLUDED.nombreComun
-        RETURNING productoId INTO vProdId;
-
-        -- Característica (Ejemplo)
-        IF i % 2 = 0 THEN
-            SELECT tipoCaracteristicaId INTO vTipoCaractId FROM TiposCaracteristica WHERE nombreTipoCaracteristica LIKE 'Apto Ingesta%' LIMIT 1;
-            IF vTipoCaractId IS NOT NULL THEN
-                INSERT INTO CaracteristicasProducto (productoId, tipoCaracteristicaId, valorBoolean, vigenteDesde, activo) 
-                VALUES (vProdId, vTipoCaractId, TRUE, CURRENT_DATE, TRUE) ON CONFLICT DO NOTHING;
+            IF v_ordenCompraId IS NULL THEN
+                INSERT INTO OrdenesCompra (proveedorId, numeroPedido, fechaSolicitud, estadoOrdenId, tipoTransporteId, incoterm, comentarios, activo)
+                VALUES (v_proveedorId, v_numeroPedido, (v_item->>'fechaSolicitud')::DATE, v_estadoOrdenId, 1, COALESCE(v_item->>'incoterm', 'FOB'), v_item->>'notas', TRUE)
+                RETURNING ordenCompraId INTO v_ordenCompraId;
+                CALL spRegistrarLogCarga('spEjecutarImportacionMultiOrdenJSON', 'Orden creada: ' || v_numeroPedido, 'EXITO', NULL);
             END IF;
+            v_currentProveedor := v_nombreProveedor; v_currentPedido := v_numeroPedido;
         END IF;
 
-        -- Precio Base
-        INSERT INTO PreciosBaseProducto (productoId, currencyIdOrigen, precioLocal, valorTasaDeCambio, precioReferencia, fechaVigenciaDesde, activo)
-        VALUES (vProdId, vCurrencyId, 10.00 + (i * 0.5), 1.0, 10.00 + (i * 0.5), CURRENT_DATE, TRUE);
+        SELECT paisId INTO v_paisId FROM Paises WHERE codigoIso = v_item->>'codigoIsoPais' LIMIT 1;
+        IF v_paisId IS NULL THEN RAISE EXCEPTION 'País producto "%" no existe.', v_item->>'codigoIsoPais'; END IF;
 
-        -- Lote Bulk
-        INSERT INTO LotesBulk (productoId, proveedorId, numeroLoteProveedor, fechaRecepcionHub, fechaVencimiento, cantidadTotal, currencyId, costoLocal, exchangeRateApplied, costoTotalUsd, estadoInventarioId, activo)
-        VALUES (vProdId, vProvId, 'LOT-'||i, CURRENT_TIMESTAMP, CURRENT_DATE + INTERVAL '2 years', 500+(i*10), vCurrencyId, 5.00+(i*0.1), 1.0, 5.00+(i*0.1), 2, TRUE)
-        RETURNING loteBulkId INTO vLoteId;
+        INSERT INTO MarcasOriginales (nombreMarca, paisId, activo) VALUES (v_item->>'nombreMarca', v_paisId, TRUE) ON CONFLICT (nombreMarca) DO NOTHING;
+        SELECT marcaOriginalId INTO v_marcaId FROM MarcasOriginales WHERE nombreMarca = v_item->>'nombreMarca' LIMIT 1;
 
-        vContador := vContador + 1;
+        INSERT INTO TiposProducto (nombreTipoProducto, activo) VALUES (v_item->>'nombreTipoProducto', TRUE) ON CONFLICT (nombreTipoProducto) DO NOTHING;
+        SELECT tipoProductoId INTO v_tipoId FROM TiposProducto WHERE nombreTipoProducto = v_item->>'nombreTipoProducto' LIMIT 1;
+
+        INSERT INTO UnidadesMedidaProducto (nombreUnidadMedidaProducto, descripcion, activo) VALUES (v_item->>'nombreUnidadMedidaProducto', v_item->>'nombreUnidadMedidaProducto', TRUE) ON CONFLICT (nombreUnidadMedidaProducto) DO NOTHING;
+        SELECT UnidadMedidaProductoId INTO v_unidadId FROM UnidadesMedidaProducto WHERE nombreUnidadMedidaProducto = v_item->>'nombreUnidadMedidaProducto' LIMIT 1;
+
+        INSERT INTO Productos (skuInterno, nombreTecnicoProducto, nombreComunProducto, marcaOriginalId, tipoProductoId, unidadMedidaProductoId, vidaUtilMeses, activo)
+        VALUES (v_item->>'skuInterno', v_item->>'nombreTecnicoProducto', v_item->>'nombreComunProducto', v_marcaId, v_tipoId, v_unidadId, (v_item->>'vidaUtilMeses')::INT, TRUE)
+        ON CONFLICT (skuInterno) DO UPDATE SET nombreComunProducto = EXCLUDED.nombreComunProducto, ultimaAuditoria = NOW();
+        
+        SELECT productoId INTO v_productoId FROM Productos WHERE skuInterno = v_item->>'skuInterno' LIMIT 1;
+
+        CALL spRegistrarDetalleImportacion(
+            p_ordenCompraId := v_ordenCompraId, p_proveedorId := v_proveedorId, p_numeroPedido := v_numeroPedido,
+            p_productoId := v_productoId, p_cantidadSolicitada := (v_item->>'cantidadSolicitada')::NUMERIC,
+            p_precioUnitarioAcordado := (v_item->>'precioUnitarioAcordado')::NUMERIC,
+            p_codigoIsoMonedaOrigen := v_item->>'codigoIsoMonedaOrigen',
+            p_costosJson := COALESCE(v_item->'costos', '[]'::jsonb), p_loteBulkId := v_loteId
+        );
     END LOOP;
-
-    CALL spRegistrarLogCarga('spCargarNegocioEtheria', '100 Productos y Lotes cargados', 'EXITO', 'Total: ' || vContador);
-END;
+    CALL spRegistrarLogCarga('spEjecutarImportacionMultiOrdenJSON', 'Finalizado', 'EXITO', NULL);
+EXCEPTION WHEN OTHERS THEN CALL spRegistrarLogCarga('spEjecutarImportacionMultiOrdenJSON', 'Fallo crítico', 'ERROR', SQLERRM); RAISE; END;
 $$;
 
--- ============================================================================
--- 5. SP ORQUESTADOR MAESTRO (LLAMADA PRINCIPAL)
--- ============================================================================
-CREATE OR REPLACE PROCEDURE spOrquestarCargaCompletaEtheria()
-LANGUAGE plpgsql
-AS $$
+-- 6. SP AUXILIAR DETALLE (CORRECCIÓN CRÍTICA: BUSQUEDA DINÁMICA DE USD)
+CREATE OR REPLACE PROCEDURE spRegistrarDetalleImportacion(
+    p_ordenCompraId INT, p_proveedorId INT, p_numeroPedido VARCHAR(20), p_productoId INT,
+    p_cantidadSolicitada NUMERIC(12,2), p_precioUnitarioAcordado NUMERIC(14,2),
+    p_codigoIsoMonedaOrigen CHAR(3), OUT p_loteBulkId INT, p_costosJson JSONB DEFAULT '[]'::jsonb
+)
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_currencyIdOrigen INT;
+    v_currencyIdDestino INT; 
+    v_tasaDeCambioId INT;
+    v_exchangeRate NUMERIC;
+    v_estadoItemId INT;
+    v_costoItem JSONB;
+    v_conceptoCostoId INT;
+    v_montoLocal NUMERIC;
+    v_monedaCostoIso CHAR(3);
+    v_currencyIdCosto INT;
 BEGIN
-    BEGIN
-        -- FASE 0: Inicializar Auditoría
-        CALL spInicializarMetadatosAuditoria();
-        CALL spRegistrarLogCarga('spOrquestarCargaCompletaEtheria', 'Fase 0: Metadatos de auditoria listos', 'EXITO', NULL);
+    -- 1. Identificar Moneda Destino (USD Base)
+    SELECT currencyId INTO v_currencyIdDestino FROM Currencies WHERE codigoIso = 'USD' LIMIT 1;
+    IF v_currencyIdDestino IS NULL THEN RAISE EXCEPTION 'Moneda base USD no encontrada.'; END IF;
 
-        -- FASE 1: Maestros
-        CALL spCargarMaestrosEtheria();
-        CALL spRegistrarLogCarga('spOrquestarCargaCompletaEtheria', 'Fase 1: Maestros completados', 'EXITO', NULL);
+    -- 2. Identificar Moneda Origen
+    SELECT currencyId INTO v_currencyIdOrigen FROM Currencies WHERE TRIM(codigoIso) = TRIM(p_codigoIsoMonedaOrigen) LIMIT 1;
+    IF v_currencyIdOrigen IS NULL THEN RAISE EXCEPTION 'Moneda origen "%" inválida.', p_codigoIsoMonedaOrigen; END IF;
 
-        -- FASE 2: Negocio
-        CALL spCargarNegocioEtheria();
-        CALL spRegistrarLogCarga('spOrquestarCargaCompletaEtheria', 'Fase 2: Negocio completado', 'EXITO', NULL);
+    -- 3. LÓGICA DE TASA DE CAMBIO (Con manejo de misma moneda)
+    IF v_currencyIdOrigen = v_currencyIdDestino THEN
+        -- CASO ESPECIAL: Misma moneda (ej. USD -> USD). Tasa es 1.0, no hay ID de tasa.
+        v_exchangeRate := 1.0;
+        v_tasaDeCambioId := NULL; -- O podrías crear una tasa dummy si la FK lo requiere, pero asumimos nullable o lógica interna.
+        SELECT tasaDeCambioId, exchangeRate INTO v_tasaDeCambioId, v_exchangeRate
+        FROM TasasDeCambio WHERE currencyId1 = v_currencyIdOrigen AND currencyId2 = v_currencyIdDestino LIMIT 1;
+        
+        IF v_tasaDeCambioId IS NULL THEN
+             -- Si no existe la fila USD->USD, usamos 1.0 y buscamos un ID dummy o lanzamos error si es estricto.
+             -- Para evitar romper todo, vamos a forzar la creación de esta fila aquí mismo si no existe (solo una vez).
+             INSERT INTO TasasDeCambio (currencyId1, currencyId2, exchangeRate, activo)
+             VALUES (v_currencyIdOrigen, v_currencyIdDestino, 1.0, TRUE)
+             ON CONFLICT (currencyId1, currencyId2) DO UPDATE SET exchangeRate = 1.0
+             RETURNING tasaDeCambioId, exchangeRate INTO v_tasaDeCambioId, v_exchangeRate;
+        END IF;
 
-        -- Validación Final
-        IF (SELECT COUNT(*) FROM Productos) < 100 THEN RAISE EXCEPTION 'Validacion fallida: Menos de 100 productos.'; END IF;
-        IF (SELECT COUNT(*) FROM Paises) < 5 THEN RAISE EXCEPTION 'Validacion fallida: Menos de 5 paises.'; END IF;
+    ELSE
+        -- CASO NORMAL: Monedas diferentes, buscar la tasa en la tabla.
+        SELECT tasaDeCambioId, exchangeRate INTO v_tasaDeCambioId, v_exchangeRate
+        FROM TasasDeCambio
+        WHERE currencyId1 = v_currencyIdOrigen AND currencyId2 = v_currencyIdDestino AND activo = TRUE LIMIT 1;
+        
+        IF v_tasaDeCambioId IS NULL THEN 
+            RAISE EXCEPTION 'Tasa no disponible para % (ID:%) -> USD (ID:%).', p_codigoIsoMonedaOrigen, v_currencyIdOrigen, v_currencyIdDestino; 
+        END IF;
+    END IF;
 
-        CALL spRegistrarLogCarga('spOrquestarCargaCompletaEtheria', 'PROCESO FINALIZADO CON EXITO', 'EXITO', 'Datos verificados correctamente');
+    -- 4. Obtener Estado Item
+    SELECT estadoItemId INTO v_estadoItemId FROM EstadosItems WHERE nombreEstadoItem = 'Confirmado' LIMIT 1;
 
-    EXCEPTION WHEN OTHERS THEN
-        CALL spRegistrarLogCarga('spOrquestarCargaCompletaEtheria', 'FALLO CRITICO', 'ERROR', SQLERRM);
-        RAISE;
-    END;
+    -- 5. Insertar Detalle de Orden
+    INSERT INTO ProductosPorOrden (ordenCompraId, productoId, cantidadSolicitada, currencyId, precioUnitarioAcordado, subtotal, tasaDeCambioAplicada, estadoItemId, activo)
+    VALUES (p_ordenCompraId, p_productoId, p_cantidadSolicitada, v_currencyIdOrigen, p_precioUnitarioAcordado, (p_cantidadSolicitada * p_precioUnitarioAcordado), v_exchangeRate, v_estadoItemId, TRUE);
+
+    -- 6. Generar Lote Bulk
+    INSERT INTO LotesBulk (productoId, proveedorId, ordenCompraId, numeroLoteProveedor, fechaVencimiento, cantidadTotal, currencyId, costoLocal, tasaDeCambioId, tasaDeCambioAplicada, costoTotal, estadoInventarioId, activo)
+    VALUES (p_productoId, p_proveedorId, p_ordenCompraId, 'LOT-' || p_numeroPedido || '-' || p_productoId::TEXT, CURRENT_DATE + INTERVAL '2 years', p_cantidadSolicitada, v_currencyIdOrigen, (p_cantidadSolicitada * p_precioUnitarioAcordado), v_tasaDeCambioId, v_exchangeRate, (p_cantidadSolicitada * p_precioUnitarioAcordado * v_exchangeRate), 1, TRUE)
+    RETURNING loteBulkId INTO p_loteBulkId;
+
+    -- 7. Asignar Costos Operativos
+    FOR v_costoItem IN SELECT * FROM jsonb_array_elements(p_costosJson) LOOP
+        INSERT INTO ConceptosCostos (nombreConceptoCosto, descripcion, activo) VALUES (v_costoItem->>'nombreConceptoCosto', 'Costo dinámico', TRUE) ON CONFLICT (nombreConceptoCosto) DO NOTHING;
+        SELECT conceptoCostoId INTO v_conceptoCostoId FROM ConceptosCostos WHERE nombreConceptoCosto = v_costoItem->>'nombreConceptoCosto' LIMIT 1;
+        v_monedaCostoIso := v_costoItem->>'codigoIsoMoneda';
+        SELECT currencyId INTO v_currencyIdCosto FROM Currencies WHERE codigoIso = v_monedaCostoIso LIMIT 1;
+        IF v_currencyIdCosto IS NULL THEN RAISE EXCEPTION 'Moneda costo "%" inválida.', v_monedaCostoIso; END IF;
+        v_montoLocal := (v_costoItem->>'montoLocal')::NUMERIC;
+        INSERT INTO CostosOperativos (conceptoCostoId, loteBulkId, currencyId, montoLocal, tasaDeCambioAplicada, montoConvertido, activo)
+        VALUES (v_conceptoCostoId, p_loteBulkId, v_currencyIdCosto, v_montoLocal, 1.0, v_montoLocal, TRUE);
+    END LOOP;
 END;
 $$;
-
-
-CALL spOrquestarCargaCompletaEtheria();
-

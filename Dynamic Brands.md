@@ -7,35 +7,35 @@
 ## Tables 
 
 # Ciudades
-- ciudadId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreCiudad varchar(50)
-- provinciaId int //FK -> Provincias
+- ciudadId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreCiudad varchar(50) unique not null
+- provinciaId int not null //FK -> Provincias
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
 # Provincias
-- provinciaId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreProvincia varchar(50)
-- paisId int //FK -> Paises
+- provinciaId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreProvincia varchar(50) unique not null
+- paisId int not null //FK -> Paises
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
 # Paises
-- paisId int not null // Id original de Etheria (PK lógica, sin auto-increment)
+- paisId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
 - nombrePais varchar(50) not null
-- codigoIso char(3) unique 
+- codigoIso char(3) unique not null
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
 # Courier
-- courierId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreCourier varchar(50)
+- courierId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreCourier varchar(50) unique not null
 - ciudadId int //FK -> Ciudades
 - tipoServicioId int //FK -> TiposServicio
 - tiempoEntregaPromedioDias int
@@ -45,32 +45,30 @@
 - activo boolean
 
 # TiposUbicacion
-- tipoUbicacionId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreTipoUbicacion varchar(50) not null 
-- descripcion varchar(150)
-- esInterno boolean default true 
-- requiereInspeccionEntrada boolean default false
-- requiereInspeccionSalida boolean default false
+- tipoUbicacionId int unique not null  // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreTipoUbicacion varchar(50) unique not null
+- descripcion varchar(255)
 - fechaSincronizacion TIMESTAMP
-- activo boolean default true
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
+- activo boolean
 
 
 # Ubicaciones 
-- ubicacionId int not null // ID original de Etheria (PK lógica, sin auto-increment)
-- nombreUbicacion varchar(100) not null 
-- tipoUbicacionRefId int not null // FK -> TiposUbicacion
-- ciudadRefId int nullable // FK -> Ciudades
+- ubicacionId int unique not null // ID original de Etheria (PK lógica, sin auto-increment)
+- nombreUbicacion varchar(100) unique not null
+- tipoUbicacionId int not null // FK -> TiposUbicacion
+- ciudadId int nullable // FK -> Ciudades
 - direccion varchar(200) nullable
-- coordenadasLatitud decimal(10,8) nullable
-- coordenadasLongitud decimal(11,8) nullable
-- operadorLogistico varchar(100) nullable
 - activo boolean default true
 - fechaSincronizacion TIMESTAMP
+- usuarioAuditoria int //FK -> Usuarios
+- ultimaAuditoria TIMESTAMP
 
 
 # TiposServicios
-- tipoServicioId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreTipoServicio varchar(50)
+- tipoServicioId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreTipoServicio varchar(50) unique not null
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -80,7 +78,7 @@
 - currencyId int not null // Id original de Etheria (PK lógica, sin auto-increment)
 - codigoIso char(3) unique not null
 - currencySymbol char
-- nombreCurrency varchar(50)
+- nombreCurrency varchar(50) not null
 - activo boolean
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -88,8 +86,8 @@
 
 # TasasDeCambio
 - tasaDeCambioId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- currencyId1 int //FK -> Currencies
-- currencyId2 int //FK -> Currencies
+- currencyId1 int unique not null //FK -> Currencies
+- currencyId2 int unique not null //FK -> Currencies
 - exchangeRate //Factor multiplicativo
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -113,12 +111,11 @@
 - impuestoVentaId serial auto-increment (PK)
 - productoMarcaId int nullable // FK -> ProductosMarcasBlancas
 - tipoProductoId int nullable // FK -> TiposProductos
-- paisId int not null // FK -> Paises
-- tipoImpuestoVentaId int not null // FK -> TiposImpuestosVenta
+- paisId int unique not null // FK -> Paises
+- tipoImpuestoVentaId int unique not null // FK -> TiposImpuestosVenta
 - porcentaje decimal(5,2) nullable 
 - montoFijoLocal decimal(10,2) nullable 
-- baseCalculoId int //FK -> BasesCalculoImpuestos
-- esRecuperable boolean default false 
+- baseCalculoId int //FK -> BasesCalculoImpuestos 
 - fechaVigenciaDesde date not null
 - fechaVigenciaHasta date nullable 
 - creadoEn TIMESTAMP
@@ -128,8 +125,8 @@
 
 # BasesCalculoImpuestos
 - BaseCalculoId serial auto-increment (PK)
-- nombreBaseCalculoImpuesto varchar(50) not null 
-- descripcion varchar(150)
+- nombreBaseCalculoImpuesto varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -137,10 +134,10 @@
 
 # TiposImpuestosVenta 
 - tipoImpuestoVentaId serial auto-increment (PK)
-- nombreTipoImpuestoVenta varchar(50) not null 
-- descripcion varchar(150)
+- nombreTipoImpuestoVenta varchar(50) unique not null
+- descripcion varchar(255)
 - aplicaPorUnidad boolean default false 
-- paisAplicacionId int // FK -> Paises
+- paisId int // FK -> Paises
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -155,9 +152,9 @@
 
 # GeneracionSitiosWeb 
 - generacionSitioWebId serial auto-increment (PK)
-- tiendaId int not null //FK -> TiendasVirtualesGeneradas
+- tiendaId int not null//FK -> TiendasVirtualesGeneradas
 - versionSitio int default 1 
-- estadoGeneracionId //FK -> EstadosGeneracion
+- estadoGeneracionId not null //FK -> EstadosGeneracion
 - fechaSolicitud TIMESTAMP not null
 - fechaCompletado TIMESTAMP nullable
 - tiempoProcesamientoSegundos int
@@ -169,8 +166,8 @@
 
 # EstadosGeneracion
 - estadoGeneracionId serial auto-increment (PK)
-- nombreEstadoGeneracion varchar(50) not null
-- descripcion varchar(150)
+- nombreEstadoGeneracion varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -178,8 +175,8 @@
 
 # TiposDato
 - tipoDatoId serial auto-increment (PK)
-- nombreTipoDato varchar(50) not null
-- descripcion varchar(150)
+- nombreTipoDato varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -187,10 +184,10 @@
 
 # TiendasVirtualesGeneradas
 - tiendaId serial auto-increment (PK)
-- nombreTienda varchar(100) not null
-- paisObjetivoId int //FK -> Paises
-- monedaLocalId int //FK -> Currencies
-- estadoTiendaId int //FK -> EstadosTienda
+- nombreTienda varchar(100) unique not null
+- paisId int not null //FK -> Paises
+- currencyId int //FK -> Currencies
+- estadoTiendaId int not null //FK -> EstadosTienda
 - enfoqueMarketingId int // FK -> EnfoquesMarketing
 - fechaApertura date
 - fechaCierre date nullable
@@ -201,10 +198,9 @@
 
 # EstadosTienda 
 - estadoTiendaId serial auto-increment (PK)
-- nombreEstadoTienda varchar(50) not null
-- codigo varchar(20) unique not null
+- nombreEstadoTienda varchar(50) unique not null
 - permiteVentas boolean default false
-- descripcion varchar(150)
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -212,7 +208,7 @@
 
 # EnfoquesMarketing 
 - enfoqueMarketingId serial auto-increment (PK)
-- nombreEnfoqueMarketing varchar(50) not null
+- nombreEnfoqueMarketing varchar(50) unique not null
 - descripcion varchar(255) 
 - publicoObjetivoId int //FK -> PublicosObjetivo
 - grupoConfiguracionId int nullable // FK -> GruposConfiguracion
@@ -224,10 +220,9 @@
 
 # TiposParametro 
 - tipoParametroId serial auto-increment (PK)
-- nombreTipoParametro varchar(50) not null 
-- tipoDatoId int //FK -> TiposDato
+- nombreTipoParametro varchar(50) unique not null
+- tipoDatoId int not null //FK -> TiposDato
 - valorPorDefecto varchar(255) nullable
-- esActivo boolean default true
 - creadoEn TIMESTAMP
 - usuarioAuditoria int
 - ultimaAuditoria TIMESTAMP
@@ -235,9 +230,8 @@
 
 # GruposConfiguracion 
 - grupoConfigId serial auto-increment (PK)
-- nombreGrupoConfiguracion varchar(50) not null 
+- nombreGrupoConfiguracion varchar(50) unique not null
 - descripcion varchar(255) nullable
-- esActivo boolean default true
 - creadoEn TIMESTAMP
 - usuarioAuditoria int
 - ultimaAuditoria TIMESTAMP
@@ -262,65 +256,65 @@
 
 
 # TiposCaracteristica 
-- tipoCaracteristicaId serial auto-increment (PK)
-- nombreTipoCaracteristica varchar(50) not null 
+- tipoCaracteristicaId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreTipoCaracteristica varchar(50) unique not null
 - descripcion varchar(150)
 - activo boolean default true
-- creadoEn TIMESTAMP
+- fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int // FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 
 # CaracteristicasProducto 
-- caracteristicaId serial auto-increment (PK)
-- productoId int not null // FK -> Productos
-- tipoCaracteristicaId int not null // FK -> TiposCaracteristica
+- caracteristicaId int unique not null// Id original de Etheria (PK lógica, sin auto-increment)
+- productoId int unique not null // FK -> Productos
+- tipoCaracteristicaId int unique not null // FK -> TiposCaracteristica
 - valorBoolean boolean nullable 
 - valorTexto varchar(255) nullable 
 - valorNumerico decimal(10,2) nullable
 - paisId int nullable // FK -> Paises
 - vigenteDesde date default current_date
 - vigenteHasta date nullable
-- creadoEn TIMESTAMP
+- fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int // FK -> Usuarios
 - activo boolean default true
 - ultimaAuditoria TIMESTAMP
 
 
 # Productos
-- productoId int not null // Id original de Etheria (PK lógica, sin auto-increment)
+- productoId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
 - skuInterno varchar(20) unique not null
 - nombreTecnico varchar(50) not null
 - nombreComun varchar(50)
 - marcaOriginalId int not null
-- tipoProductoId int // FK -> TiposProducto
-- unidadMedidaProductoId int // FK -> UnidadesMedidaProducto
+- tipoProductoId int not null // FK -> TiposProducto
+- unidadMedidaProductoId int not null // FK -> UnidadesMedidaProducto
 - vidaUtilMeses int
-- creadoEn TIMESTAMP
+- fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
 # TiposProducto
-- tipoProductoId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreTipoProducto varchar(50) not null 
+- tipoProductoId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreTipoProducto varchar(50) unique not null
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
 # UnidadesMedidaProducto
-- UnidadMedidaProductoId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreUnidadMedidaProducto varchar(50) not null 
-- descripcion varchar(100)
+- UnidadMedidaProductoId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreUnidadMedidaProducto varchar(50) unique not null
+- descripcion varchar(255)
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean default true
 
 # MarcasOriginales 
-- marcaOriginalId int not null // Id original de Etheria (PK lógica, sin auto-increment)
-- nombreMarcaOriginal varchar(100) not null 
-- paisOrigenId int //FK -> Paises
+- marcaOriginalId int unique not null // Id original de Etheria (PK lógica, sin auto-increment)
+- nombreMarcaOriginal varchar(100) unique not null 
+- paisId int //FK -> Paises
 - fechaSincronizacion TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -328,12 +322,11 @@
 
 # MarcasBlancas 
 - marcaBlancaId serial auto-increment (PK)
-- nombreMarcaBlanca varchar(100) not null 
-- tiendaId int //FK -> TiendasVirtualesGeneradas
-- paisId int //FK -> Paises
+- nombreMarcaBlanca varchar(100) unique not null
+- tiendaId int not null //FK -> TiendasVirtualesGeneradas
+- paisId int not null //FK -> Paises
 - archivoId int //Fk -> Archivos
 - publicoObjetivoId int //FK -> PublicosObjetivo
-- esMarcaPrincipal boolean default false 
 - fechaRegistroMarca date 
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK > Usuarios
@@ -342,8 +335,8 @@
 
 # PublicosObjetivo
 - publicoObjetivoId serial auto-increment (PK)
-- nombrePublicoObjetivo varchar(50) not null
-- descripcion varchar(150)
+- nombrePublicoObjetivo varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -351,11 +344,11 @@
 
 # ProductosMarcasBlancas
 - productoMarcaId serial auto-increment (PK)
-- productoId int not null //FK -> Productos
-- tiendaId int //FK -> TiendasVirtualesGeneradas
+- productoId int unique not null //FK -> Productos
+- tiendaId int unique not null //FK -> TiendasVirtualesGeneradas
 - skuComercial varchar(50) unique not null
 - nombreComercial varchar(100) not null
-- marcaBlancaId int not null // FK -> MarcasBlancas
+- marcaBlancaId int unique not null // FK -> MarcasBlancas
 - stockDisponible decimal(12,2) default 0
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -364,19 +357,18 @@
 
 # PreciosVenta 
 - precioVentaId serial auto-increment (PK)
-- productoMarcaId int not null //FK -> ProductosMarcasBlancas
-- currencyId int not null // FK -> Currencies
+- productoMarcaId int unique not null //FK -> ProductosMarcasBlancas
+- currencyId int unique not null // FK -> Currencies
 - precioVentaLocal decimal(14,2) not null 
 - tasaDeCambioId int //FK -> TasasDeCambio
 - tasaDeCambioAplicada decimal(12,6) not null 
-- tipoPrecioId int not null // FK -> TiposPrecio
+- tipoPrecioId int unique not null // FK -> TiposPrecio
 - margenPorcentaje decimal(5,2) 
-- costoBaseUsd decimal(14,4) // Costo base en USD (viene de Etheria)
+- costoBase decimal(14,4) // Costo base en USD (viene de Etheria)
 - fechaVigenciaDesde date not null
 - fechaVigenciaHasta date nullable 
 - aprobadoPor int nullable  //FK -> Usuarios 
 - fechaAprobacion TIMESTAMP nullable
-- esPrecioActivo boolean default true
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -384,8 +376,8 @@
 
 # TiposPrecios
 - tipoPrecioId serial auto-increment (PK)
-- nombreTipoPrecio varchar(50) not null
-- descripcion varchar(150)
+- nombreTipoPrecio varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -409,8 +401,8 @@
 
 # Descuentos  
 - descuentoId serial auto-increment (PK)
-- codigoCupon varchar(50) unique
-- descripcion varchar(150)
+- codigoCupon varchar(50) unique not null
+- descripcion varchar(255)
 - tipoDescuentoId not null //FK -> TiposDescuentos
 - valorDescuento decimal(10,2) not null
 - montoMinimoCompra decimal(12,2) nullable 
@@ -427,8 +419,8 @@
 
 # DescuentosPorTienda 
 - descuentoTiendaId serial auto-increment (PK)
-- descuentoId int not null //FK -> Descuentos 
-- tiendaId int not null //FK -> TiendasVirtualesGeneradas
+- descuentoId int unique not null //FK -> Descuentos 
+- tiendaId int unique not null //FK -> TiendasVirtualesGeneradas
 - esExclusivo boolean default false
 - fechaInicio TIMESTAMP
 - fechaFin TIMESTAMP nullable
@@ -439,8 +431,8 @@
 
 # DescuentosPorProducto 
 - descuentoProductoId serial auto-increment (PK)
-- descuentoId int not null //FK -> Descuentos 
-- productoMarcaId int not null //FK -> ProductosMarcaBlancas
+- descuentoId int unique not null //FK -> Descuentos 
+- productoMarcaId int unique not null //FK -> ProductosMarcaBlancas
 - aplicaAVariantes boolean default true 
 - fechaInicio TIMESTAMP
 - fechaFin TIMESTAMP nullable
@@ -451,8 +443,8 @@
 
 # TiposDescuento
 - tipoDescuentoId serial auto-increment (PK)
-- nombreTipoDescuento varchar(50) not null
-- descripcion varchar(150)
+- nombreTipoDescuento varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -460,10 +452,9 @@
 
 # TiposRegulacion 
 - tipoRegulacionId serial auto-increment (PK)
-- nombreTipoRegulacion varchar(50) not null 
+- nombreTipoRegulacion varchar(50) unique not null
 - tipoDatoId not null //FK -> TiposDato
 - descripcion varchar(255)
-- esActivo boolean default true
 - creadoEn TIMESTAMP
 - usuarioAuditoria int
 - ultimaAuditoria TIMESTAMP
@@ -473,8 +464,8 @@
 - regulacionId serial auto-increment (PK)
 - productoMarcaId int nullable // FK -> ProductoMarcaBlanca
 - tipoProductoId int nullable // FK -> TiposProducto
-- paisId int not null // FK -> Paises
-- tipoRegulacionId int not null // FK -> TiposRegulacion
+- paisId int unique not null // FK -> Paises
+- tipoRegulacionId int unique not null // FK -> TiposRegulacion
 - valorBoolean boolean nullable 
 - valorNumerico decimal(10,2) nullable 
 - valorTexto varchar(255) nullable 
@@ -531,7 +522,7 @@
 - loteBulkId int not null //FK lógica a LotesBulks de Etheria
 - productoMarcaId int not null // FK -> ProductosMarcasBlancas
 - productoBaseId int not null // FK lógica a Productos de Etheria
-- puntoRetiroId int not null // FK -> Ubicaciones
+- ubicacionId int not null // FK -> Ubicaciones
 - cantidadTransformada decimal(12,2) not null 
 - cantidadMerma decimal(12,2) default 0 
 - fechaTransformacion timestamp not null
@@ -561,12 +552,12 @@
 
 # Clientes // Independiente para no atarlo a todas las tiendas en general
 - clienteId serial auto-increment (PK)
-- tiendaId int //FK -> TiendasVirtualesGeneradas
-- email varchar(100) not null
-- nombreCliente varchar(50)
-- apellidoCliente1 varchar(40)
-- apellidoCliente2 varchar(40)
-- paisResidenciaId int //FK -> Paises
+- tiendaId int not null //FK -> TiendasVirtualesGeneradas
+- email varchar(100) unique not null
+- nombreCliente varchar(50) not null
+- apellidoCliente1 varchar(40) not null
+- apellidoCliente2 varchar(40) not null
+- paisId int //FK -> Paises
 - telefono varchar(20)
 - fechaRegistro TIMESTAMP
 - ultimoAcceso TIMESTAMP
@@ -577,8 +568,7 @@
 
 # TiposContactoCliente 
 - tipoContactoClienteId serial auto-increment (PK)
-- nombreTipoContactoCliente varchar(50) not null
-- codigo varchar(20) unique not null
+- nombreTipoContactoCliente varchar(50) unique not null
 - formatoValidacion varchar(100)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -587,8 +577,8 @@
 
 # ContactosClientes
 - contactoClienteId serial auto-increment (PK)
-- clienteId int //FK -> Clientes
-- tipoContactoClienteId int //FK -> TiposContactosClientes
+- clienteId int not null //FK -> Clientes
+- tipoContactoClienteId int not null //FK -> TiposContactosClientes
 - valor varchar(150) not null
 - esPrincipal boolean default false
 - verificado boolean default false
@@ -603,7 +593,7 @@
 - tiendaId int not null //FK -> TiendasVirtualesGeneradas
 - tipoInteraccionId int not null //FK -> TiposInteraccionesClientes
 - referenciaId bigint nullable // ID de la orden/ticket relacionado
-- descripcion varchar(200)
+- descripcion varchar(255)
 - fechaInteraccion TIMESTAMP
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -612,8 +602,8 @@
 
 # TiposInteraccionesClientes
 - tipoInteraccionId serial auto-increment (PK)
-- nombreTipoInteraccionCliente varchar(50) not null
-- descripcion varchar(150)
+- nombreTipoInteraccionCliente varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -647,8 +637,8 @@
 
 # EstadosOrdenesVenta 
 - estadoOrdenVentaId serial auto-increment (PK)
-- nombreEstadoOrdenVenta varchar(50) not null
-- descripcion varchar(150)
+- nombreEstadoOrdenVenta varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -656,8 +646,8 @@
 
 # DetallesOrdenesVenta
 - detalleId serial auto-increment (PK)
-- ordenVentaId int //FK -> OrdenesVenta
-- productoMarcaId int //FK -> ProductosMarcasBlancas
+- ordenVentaId int not null //FK -> OrdenesVenta
+- productoMarcaId int not null //FK -> ProductosMarcasBlancas
 - cantidad int not null
 - currencyId int not null // FK -> Currencies
 - precioUnitarioLocal decimal(10,2) not null
@@ -669,7 +659,7 @@
 
 # MetodosPago 
 - metodoPagoId serial auto-increment (PK)
-- nombreMetodoPago varchar(50) not null 
+- nombreMetodoPago varchar(50) unique not null
 - requiereValidacionAdicional boolean default false
 - costoTransaccionPorcentaje decimal(5,2) default 0
 - costoTransaccionFijo decimal(10,2) default 0
@@ -681,8 +671,8 @@
 
 # EstadosPago
 - estadoPagoId serial auto-increment (PK)
-- nombreEstadoPago varchar(50) not null
-- descripcion varchar(150)
+- nombreEstadoPago varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -690,8 +680,8 @@
 
 # ImpuestosOrdenesVenta 
 - ordenImpuestoId serial auto-increment (PK)
-- ordenVentaId int not null // FK -> OrdenesVenta
-- impuestoVentaId int not null // FK -> ImpuestosVentaPorPais
+- ordenVentaId int unique not null // FK -> OrdenesVenta
+- impuestoVentaId int unique not null // FK -> ImpuestosVentaPorPais
 - montoImpuestoLocal decimal(10,2) not null 
 - baseCalculoId int not null //FK -> BasesCalculoImpuestos
 - creadoEn TIMESTAMP
@@ -701,8 +691,8 @@
 
 # DescuentosOrdenVenta
 - ordenDescuentoId serial auto-increment (PK)
-- ordenVentaId int not null // FK -> OrdenesVenta
-- descuentoId int not null // FK -> Descuentos
+- ordenVentaId int unique not null// FK -> OrdenesVenta
+- descuentoId int unique not null // FK -> Descuentos
 - montoDescuentoLocal decimal(10,2) not null 
 - codigoCuponUsado varchar(50) nullable 
 - creadoEn TIMESTAMP
@@ -720,12 +710,11 @@
 # SolicitudesRetiro 
 - solicitudRetiroId serial auto-increment (PK)
 - productoBaseReferencia int not null 
-- loteBulkReferencia varchar(100) not null 
+- loteBulkReferencia int not null 
 - cantidadSolicitada decimal(12,2) not null
-- productoMarcaDestinoId int // FK -> ProductosMarcasBlancas
+- productoMarcaId int // FK -> ProductosMarcasBlancas
 - fechaSolicitud TIMESTAMP not null
 - fechaRetiroProgramado date nullable
-- confirmacionEtheriaId int nullable // Referencia a movimiento/registro en Etheria
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -733,15 +722,15 @@
 
 # Envios
 - envioId serial auto-increment (PK)
-- ordenVentaId int //FK -> OrdenesVenta
-- courierId int //FK -> Couriers
-- trackingNumber varchar(100) unique
+- ordenVentaId int not null //FK -> OrdenesVenta
+- courierId int not null //FK -> Couriers
+- trackingNumber varchar(100) unique not null
 - fechaDespacho TIMESTAMP
 - fechaEntregaEstimada date
 - fechaEntregaReal TIMESTAMP
 - costoCourierLocal decimal(10,2)
 - currencyId int not null //FK -> Currencies
-- estadoEnvioId int //FK -> EstadosEnvio
+- estadoEnvioId int not null //FK -> EstadosEnvio
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -749,8 +738,8 @@
 
 # EstadosEnvio 
 - estadoEnvioId serial auto-increment (PK)
-- nombreEstadoEnvio varchar(50) not null
-- descripcion varchar(150)
+- nombreEstadoEnvio varchar(50) unique not null
+- descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -768,9 +757,9 @@
 - tamaño INTEGER
 - duracion FLOAT
 - deleted boolean DEFAULT FALSE
-- rutaAlmacenamiento varchar(500)
+- rutaAlmacenamiento varchar(500) not null
 - tipoArchivo int //FK -> TiposArchivos
-- nombreOriginalArchivo varchar(255)
+- nombreOriginalArchivo varchar(255) unique not null
 - hashContenido varchar(64)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -779,7 +768,7 @@
 
 # TiposArchivos 
 - tipoArchivoId serial auto-increment (PK)
-- nombreTipoArchivo varchar(50) not null  
+- nombreTipoArchivo varchar(50) unique not null
 - extension varchar(100) not null 
 - tamanioMaximoMB decimal(6,2) not null 
 - dimensionesMinimasPx varchar(20) nullable 
@@ -792,9 +781,8 @@
 
 # TiposEvento 
 - tipoEventoId serial auto-increment (PK)
-- codigoEvento varchar(30) unique not null 
-- descripcion varchar(100) not null
-- requierePreguardado boolean default true 
+- nombreEvento varchar(50) unique not null 
+- descripcion varchar(255) not null
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -803,7 +791,7 @@
 # Severidades 
 - severidadId serial auto-increment (PK)
 - valorSeveridad int not null 
-- nombreSeveridad varchar(20) not null
+- nombreSeveridad varchar(50) not null
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -828,8 +816,8 @@
 - usuarioId int //FK -> Usuarios
 - referenciaId1 bigint 
 - referenciaId2 bigint 
-- descripcionReferencia1 varchar(200)
-- descripcionReferencia2 varchar(200)
+- descripcionReferencia1 varchar(255)
+- descripcionReferencia2 varchar(255)
 - objetoId1 int //FK -> Objetos
 - objetoId2 int //FK -> Objetos
 - checkSum varchar(64) // SHA256 de: tipoEventoId+referenciaId1+objetoId1+fecha+datosNuevos 
@@ -838,7 +826,7 @@
 
 # Sources 
 - sourceId serial auto-increment (PK)
-- nombreSource varchar(50)
+- nombreSource varchar(50) unique not null
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
@@ -849,10 +837,10 @@
 
 # Usuarios
 - usuarioId serial auto-increment (PK)
-- nombreUsuario varchar(50)
-- apellido1 varchar(40)
-- apellido2 varchar(40)
-- email varchar(255)
+- nombreUsuario varchar(50) not null
+- apellido1 varchar(40) not null
+- apellido2 varchar(40) not null
+- email varchar(255) unique not null
 - contraseña VARBINARY(255)
 - fechaNacimiento date
 - creadoEn TIMESTAMP
@@ -862,7 +850,7 @@
 
 # Roles
 - rolId serial auto-increment (PK)
-- nombreRol varchar(50)
+- nombreRol varchar(50) unique not null
 - descripcion varchar(255)
 - nivelAcceso int
 - creadoEn TIMESTAMP
@@ -872,7 +860,7 @@
 
 # Permiso
 - permisoId serial auto-increment (PK)
-- nombrePermiso varchar(50)
+- nombrePermiso varchar(50) unique not null
 - descripcion varchar(255)
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
@@ -880,16 +868,16 @@
 - activo boolean
 
 # RolPermiso
-- rolId int  //FK -> Roles
-- permisoId int //Fk -> Permisos
+- rolId int unique not null  //FK -> Roles
+- permisoId int unique not null //Fk -> Permisos
 - creadoEn TIMESTAMP
 - usuarioAuditoria int //FK -> Usuarios
 - ultimaAuditoria TIMESTAMP
 - activo boolean
 
 # UsuarioRol
-- usuarioId int //FK -> Usuarios
-- rolId int //FK -> Roles
+- usuarioId int unique not null //FK -> Usuarios
+- rolId int unique not null //FK -> Roles
 - asignadoPor int
 - asignadoEn TIMESTAMP
 - fechaExpiracion TIMESTAMP
@@ -917,7 +905,7 @@
 
 # ConfiguracionPorTienda // Configuraciones específicas por tienda
 - configuracionTiendaId serial auto-increment (PK)
-- tiendaId int //FK -> TiendasVirtualesGeneradas
+- tiendaId int not null //FK -> TiendasVirtualesGeneradas
 - clave varchar(50) not null
 - valorText varchar(500)
 - creadoEn TIMESTAMP

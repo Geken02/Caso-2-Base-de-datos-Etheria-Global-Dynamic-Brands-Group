@@ -480,11 +480,51 @@ DELIMITER $$
 CREATE PROCEDURE spCargaAutomaticaCompleta()
 BEGIN
 
-    DECLARE v_jsonTiendas LONGTEXT DEFAULT '{
-        "nombres": ["TechStore Costa Rica", "EcoLife Brasil", "Fashion USA", "Gourmet Alemania"],
-        "paisesIso": ["CRC", "BRA", "USA", "DEU"],
-        "monedasIso": ["CRC", "BRL", "USD", "EUR"],
-        "enfoques": ["Tech", "EcoFriendly", "Premium", "General"]
+        DECLARE v_jsonTiendas LONGTEXT DEFAULT '{
+        "nombres": [
+            "TechStore San José", 
+            "EcoLife Costa Rica", 
+            "Moda CRC",
+            "EcoLife Brasil", 
+            "Tech Río",
+            "Fashion NYC", 
+            "Gourmet USA",
+            "Electrónica China",
+            "Estilo Europa"
+        ],
+        "paisesIso": [
+            "CRC", 
+            "CRC", 
+            "CRC",
+            "BRA", 
+            "BRA",
+            "USA", 
+            "USA",
+            "CHN",
+            "ESP"
+        ],
+        "monedasIso": [
+            "CRC", 
+            "CRC", 
+            "CRC",
+            "BRL", 
+            "BRL",
+            "USD", 
+            "USD",
+            "CNY",
+            "EUR"
+        ],
+        "enfoques": [
+            "Tech", 
+            "EcoFriendly", 
+            "Fashion",
+            "EcoFriendly", 
+            "Tech",
+            "Premium", 
+            "General",
+            "Innovación",
+            "General"
+        ]
     }';
 
 

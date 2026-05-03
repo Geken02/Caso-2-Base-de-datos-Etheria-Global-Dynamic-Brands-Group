@@ -501,7 +501,7 @@ BEGIN
             "USA", 
             "USA",
             "CHN",
-            "ESP"
+            "DEU"
         ],
         "monedasIso": [
             "CRC", 

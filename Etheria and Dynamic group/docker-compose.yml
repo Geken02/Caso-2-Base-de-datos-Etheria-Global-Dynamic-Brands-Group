@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 1. MySQL (Dynamic Brands)
+  dynamic_mysql:
+    image: mysql:8.0
+    container_name: dynamic_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: dynamicbrands_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init-db/mysql:/docker-entrypoint-initdb.d
+      - ./data:/app/data
+    command: --secure-file-priv=""
+    networks:
+      - dw-network
+    ports:
+      - "3306:3306"
+
+  # 2. PostgreSQL (Etheria + DW)
+  etheria-db:
+    image: postgres:latest
+    container_name: Etheria-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_DB: Etheria-db
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init-db/postgres:/docker-entrypoint-initdb.d
+      - ./data:/app/data
+    networks:
+      - dw-network
+    ports:
+      - "5432:5432"
+
+  # 3. Metabase (Dashboard)
+  metabase:
+    image: metabase/metabase:latest
+    container_name: metabase
+    ports:
+      - "3000:3000"
+    depends_on:
+      - etheria-db
+    networks:
+      - dw-network
+    restart: always
+
+  # 4. ETL Runner (Tu script Python)
+  etl_runner:
+    build: .
+    container_name: etl_job
+    depends_on:
+      - dynamic_mysql
+      - etheria-db
+    networks:
+      - dw-network
+    volumes:
+      - C:/Users/geral/Etheria and Dynamic group/data:/app/data
+    command: >
+      sh -c "echo 'Esperando bases de datos...' && 
+             sleep 20 && 
+             python Script_ETL.py"
+
+networks:
+  dw-network:
+    driver: bridge
+
+# AQUÍ ESTABA EL ERROR: Asegúrate de usar dos puntos ':' al final de cada nombre
+volumes:
+  mysql_data:
+  postgres_data:

@@ -39,7 +39,7 @@ CREATE TABLE dwAnalytics.ReporteRentabilidadGlobal (
 
     "costoTotalVenta" DECIMAL(14,4), 
     "margenBrutoUnitario" DECIMAL(14,2),
-    "margenPorcentaje" DECIMAL(5,2),
+    "margenPorcentaje" DECIMAL(10,2),
     
     -- Auditoría
     "fechaProceso" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
